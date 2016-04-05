@@ -12,10 +12,10 @@ classdef TrackData
        TrackName
        PathToInfoDir
        Tempo
-       BestBarData
+       BestBar
        BestBarLoc
-       AmplitudeData
-       AutoCorData
+       Amplitude
+       AutoCorrelation
        SimilarTracks
        TrackWaveform
     end
@@ -71,23 +71,23 @@ classdef TrackData
             end
         end
                 
-        function  bestbar = get.BestBarData(obj)
+        function  bestbar = get.BestBar(obj)
             pathToBestBar = [obj.PathToInfoDir obj.TrackName '_BAR.mat'];
             bestbar = importdata(pathToBestBar);
         end
         
         function bbloc = get.BestBarLoc(obj)
-            times = get(obj.BestBarData, 'Time');
+            times = get(obj.BestBar, 'Time');
             times = times{1,1}{1,1};
             bbloc = [times(1) times(end)];
         end
             
-        function  ampl = get.AmplitudeData(obj)
+        function  ampl = get.Amplitude(obj)
             pathToAmplitude = [obj.PathToInfoDir obj.TrackName '_AMPL.mat'];
             ampl = importdata(pathToAmplitude);
         end
         
-        function  autoc = get.AutoCorData(obj)
+        function  autoc = get.AutoCorrelation(obj)
             pathToAutoCor = [obj.PathToInfoDir obj.TrackName '_COR.mat'];
             autoc = importdata(pathToAutoCor);
         end
@@ -109,7 +109,7 @@ classdef TrackData
         end
         
         function env_indexes = getBestCluster(obj)
-            allChannels = obj.AmplitudeData;
+            allChannels = obj.Amplitude;
             [cIDs, cVals] = kmeans(allChannels, 5, 'Replicates', 5);
 
             [clustCounts, indexes] = sort(histcounts(cIDs), 'Descend');

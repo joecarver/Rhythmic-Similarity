@@ -3,11 +3,8 @@ classdef ActiveTrack
     %   Detailed explanation goes here
     
     properties
-        TrackName
-        TrackPath
-        Tempo
-        Amplitude
-        AutoCorrelation
+        TrackData
+        BestBarOffset
         SimilarTracks
         SelectedFeature
     end
@@ -16,11 +13,8 @@ classdef ActiveTrack
         function at = ActiveTrack(trackData)
             if(nargin > 0)
                 if(isa(trackData, 'TrackData'))
-                    at.TrackName = trackData.TrackName;
-                    at.TrackPath = trackData.OriginalPath;
-                    at.Tempo = trackData.Tempo;
-                    at.Amplitude = trackData.AmplitudeData;
-                    at.AutoCorrelation = trackData.AutoCorData;
+                    at.TrackData = trackData;
+                    at.BestBarOffset = 0;
                 elseif(isa(trackData, 'ActiveTrack'))
                     at = trackData;
                 end
@@ -56,6 +50,11 @@ classdef ActiveTrack
                     env_indexes = [env_indexes i];
                 end
             end
+        end
+        
+        function bestbarnudge(obj, offset)
+            obj.BestBarOffset = obj.BestBarOffset + offset;
+            setActiveTrack(obj);
         end
     end
     

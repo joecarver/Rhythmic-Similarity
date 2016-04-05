@@ -6,8 +6,8 @@ display('COMPUTING AMPLITUDE');
 
 pathToAmpl = [trackData.PathToInfoDir trackData.TrackName '_AMPL.mat'];
 
-wf = trackData.BestBarData;
-fb = mirfilterbank(wf);
+wf = trackData.BestBar;
+fb = mirfilterbank(wf, 'NbChannels', 3);
 
 % extract, differentiate, half-wave rectify the amplitude envelope
 %    gives a precise description of variation of energy produced by 

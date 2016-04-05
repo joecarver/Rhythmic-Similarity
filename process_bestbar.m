@@ -32,6 +32,7 @@ env_dat = mirgetdata(envs);
 env_dat = env_dat';
 env_dat(isnan(env_dat)) = 0;
 
+
 k = 5;
 %cID contains the cluster index for each bar
     %cVals contains the value at each sample (~5000) for each k cluster

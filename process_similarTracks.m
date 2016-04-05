@@ -80,4 +80,5 @@ function resized = resize(comp_feature, size)
     resized = interp1(x, comp_feature, xp);
 end
 
+%[thspks, thsloc] = findpeaks(env_dat(i,:), 'NPeaks', 8, 'SortStr', 'Descend', 'MinPeakProminence', 2);
 
