@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 05-Apr-2016 11:27:58
+% Last Modified by GUIDE v2.5 05-Apr-2016 14:08:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -428,6 +428,8 @@ activeTrack = getActiveTrack;
 switch(get(eventdata.NewValue, 'Tag'))
     case 'autocor_button'
         freq_bg.Visible = 'off';
+        set(handles.bbadjust_group, 'Visible', 'off');
+        set(handles.playbar_button, 'Visible', 'off');
         set(handles.replot_ampl_button, 'Visible', 'off');
         set(handles.smart_select_button, 'Visible', 'off');
         activeTrack.SelectedFeature = 'Autocorrelation';
@@ -581,30 +583,57 @@ setActiveTrack(actTrackData);
 plotAmplitude(handles);
 populate_table(handles);
 
-% --- Executes on button press in barleft_button.
+
+% --- Executes on button press in nudgeleft_button.
 function barleft_button_Callback(hObject, eventdata, handles)
-% hObject    handle to barleft_button (see GCBO)
+% hObject    handle to nudgeleft_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-samplestep = get(handles.samplestep, 'String');
 activeTrack = getActiveTrack;
+step = size(activeTrack.TrackData.Amplitude, 2);
 
-activeTrack.bestbarnudge(-str2double(samplestep));
+activeTrack.bestbarnudge(step);
 plotAmplitude(handles);
 
-% --- Executes on button press in barright_button.
-function barright_button_Callback(hObject, eventdata, handles)
-% hObject    handle to barright_button (see GCBO)
+% --- Executes on button press in nudgeleft_button.
+function nudgeleft_button_Callback(hObject, eventdata, handles)
+% hObject    handle to nudgeleft_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 samplestep = get(handles.samplestep, 'String');
-
 activeTrack = getActiveTrack;
+
 activeTrack.bestbarnudge(str2double(samplestep));
+plotAmplitude(handles);
+
+% --- Executes on button press in nudgeleft_button.
+function barright_button_Callback(hObject, eventdata, handles)
+% hObject    handle to nudgeleft_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+activeTrack = getActiveTrack;
+step = size(activeTrack.TrackData.Amplitude, 2);
+
+activeTrack.bestbarnudge(-step);
+plotAmplitude(handles);
+
+% --- Executes on button press in nudgeight_button.
+function nudgeright_button_Callback(hObject, eventdata, handles)
+% hObject    handle to nudgeright_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+samplestep = get(handles.samplestep, 'String');
+
+activeTrack = getActiveTrack;
+activeTrack.bestbarnudge(-str2double(samplestep));
 
 plotAmplitude(handles);
+
+
 
 % --- Executes during object creation, after setting all properties.
 function samplestep_CreateFcn(hObject, eventdata, handles)
