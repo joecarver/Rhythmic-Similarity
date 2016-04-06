@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 05-Apr-2016 14:08:25
+% Last Modified by GUIDE v2.5 05-Apr-2016 18:59:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,11 +66,8 @@ set(handles.feature_buttongroup, 'Visible', 'off');
 set(handles.similar_tracks_button, 'Visible', 'off');
 set(handles.frequency_buttongroup, 'Visible', 'off');
 set(handles.bbadjust_group, 'Visible', 'off');
+set(handles.action_buttongroup, 'Visible', 'off');
 
-%TODO - group these
-set(handles.replot_ampl_button, 'Visible', 'off');
-set(handles.smart_select_button, 'Visible', 'off');
-set(handles.playbar_button, 'Visible', 'off');
 initialiseFrequency_bg(handles, channel_count);
 
 
@@ -165,6 +162,7 @@ tCount = numel(trackArray);
 titles = [];
 locations = [];
 calc_tempos = [];
+bestbars = [];
 amplitudes = [];
 autocors = [];
 
@@ -175,6 +173,7 @@ for i = 1:tCount
     titles = [titles; {trackData.TrackName}];
     locations = [locations; {trackData.OriginalPath}];
     calc_tempos = [calc_tempos; trackData.Tempo];
+    bestbars = [bestbars; trackData.BestBarExists];
     amplitudes = [amplitudes; trackData.AmplitudeExists];
     autocors = [autocors; trackData.AutoCorExists];
 end
@@ -184,7 +183,7 @@ titles = char(titles);
 locations = char(locations);
 
 %tabledata in correct format for insertion
-tData = [ cellstr(titles) cellstr(locations) num2cell(calc_tempos(:)) num2cell(amplitudes(:)) num2cell(autocors(:)) ];
+tData = [ cellstr(titles) cellstr(locations) num2cell(calc_tempos(:)) num2cell(bestbars(:)) num2cell(amplitudes(:)) num2cell(autocors(:)) ];
 
 set(hTable, 'Data', tData); 
 
@@ -201,16 +200,19 @@ if (numel(eventdata.Indices) > 0)
     handles.sel_col = eventdata.Indices(2);
 end
 
+if(handles.sel_col == 4)
+    trackArray = getTrackArray;
+    trackData = trackArray(handles.sel_row).TrackData;
+    mirplay(trackData.BestBar);
+end
+
 guidata(hObject, handles);
 
 %get the track highlighted in the table
 function trackData = get_selected_track(handles)
-row = handles.sel_row;
-col = handles.sel_col;
 
 trackArray = getTrackArray;
-
-trackData = trackArray(row).TrackData;
+trackData = trackArray(handles.sel_row).TrackData;
 
 % --- Executes on button press in calc_selected_track_button.
 function calc_selected_track_button_Callback(hObject, eventdata, handles)
@@ -340,9 +342,7 @@ if(numel(bg.Children) < 2)
                                  'String', ['Channel ' num2str(i)], ...
                                  'Position', [x y w h], ...
                                  'Visible', 'on');
-        if i==1
-            checkbox.Value = 1;
-        end
+        checkbox.Value = 1;
 
         if (mod(i,3)==0)
             x = x+w+20;
@@ -384,16 +384,12 @@ freq_bg = handles.frequency_buttongroup;
 
 freq_bg.Visible = 'on';
 set(handles.bbadjust_group, 'Visible', 'on');
-
-set(handles.replot_ampl_button, 'Visible', 'on');
-set(handles.smart_select_button, 'Visible', 'on');
-set(handles.playbar_button, 'Visible', 'on');
+set(handles.action_buttongroup, 'Visible', 'on');
 cla;
 
 activeTrack = getActiveTrack;
 all_channels = activeTrack.TrackData.Amplitude;
 trackData = activeTrack.TrackData;
-
 
 sample_count = size(all_channels, 2);
 x_label = xlabel(['Bar position in secs: ' num2str(trackData.BestBarLoc(1)) ' - ' num2str(trackData.BestBarLoc(2))]);
@@ -429,9 +425,7 @@ switch(get(eventdata.NewValue, 'Tag'))
     case 'autocor_button'
         freq_bg.Visible = 'off';
         set(handles.bbadjust_group, 'Visible', 'off');
-        set(handles.playbar_button, 'Visible', 'off');
-        set(handles.replot_ampl_button, 'Visible', 'off');
-        set(handles.smart_select_button, 'Visible', 'off');
+        set(handles.action_buttongroup, 'Visible', 'off');
         activeTrack.SelectedFeature = 'Autocorrelation';
         plotAutoCor(handles);
     case 'amplitude_button'
@@ -450,27 +444,6 @@ function replot_ampl_button_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 plotAmplitude(handles);
-
-% --- Executes on button press in smart_select_button.
-function smart_select_button_Callback(hObject, eventdata, handles)
-% hObject    handle to smart_select_button (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-selected_track = getActiveTrack;
-channel_buttons = flipud(handles.frequency_buttongroup.Children);
-axes(handles.feature_panel);
-
-env_indexes = selected_track.getBestCluster;
-
-for i = 1:size(channel_buttons)
-    channel_button = channel_buttons(i);
-    channel_button.Value = channel_button.Min;
-
-    if ismember(i, env_indexes)
-        channel_button.Value = channel_button.Max;
-    end
-end        
 
 
 % --- Executes on selection change in sim_tracks_box.
@@ -491,6 +464,9 @@ selTrackData = getTrackDataFromName(activeTrack.SimilarTracks(seltrack_index));
 
 switch(activeTrack.SelectedFeature)
     case 'Amplitude Envelope'
+        hold on;
+        plot(mean(activeTrack.TrackData.Amplitude));
+        plot(mean(selTrackData.Amplitude));
     case 'Autocorrelation'
         hold on;
         plot(activeTrack.TrackData.AutoCorrelation);
@@ -519,9 +495,8 @@ if(strcmp(activeTrack.SelectedFeature, 'Amplitude Envelope'))
     end
 end 
     
-similar_tracks = process_similarTracks(activeTrack, selected_channels, false);
+similar_tracks = process_similarTracks(activeTrack, selected_channels);
 similar_tracks = sortrows(similar_tracks, 2);
-
 
 set(display_box, 'String', similar_tracks(:,1));
 activeTrack.SimilarTracks = similar_tracks(:,1);
@@ -547,7 +522,6 @@ function edittrack_button_Callback(hObject, eventdata, handles)
 activeTrack = getActiveTrack;
 actTrackData = activeTrack.TrackData;
 pathToBestBar = [actTrackData.PathToInfoDir actTrackData.TrackName '_BAR.mat'];
-pathToAmpl = [actTrackData.PathToInfoDir actTrackData.TrackName '_AMPL.mat'];
 pathToTempo = [actTrackData.PathToInfoDir actTrackData.TrackName '_TMP.mat'];
 
 
@@ -582,7 +556,6 @@ setActiveTrack(actTrackData);
 
 plotAmplitude(handles);
 populate_table(handles);
-
 
 % --- Executes on button press in nudgeleft_button.
 function barleft_button_Callback(hObject, eventdata, handles)
@@ -634,20 +607,6 @@ activeTrack.bestbarnudge(-str2double(samplestep));
 plotAmplitude(handles);
 
 
-
-% --- Executes during object creation, after setting all properties.
-function samplestep_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to samplestep (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in recalc_bestbar.
 function recalc_bestbar_Callback(hObject, eventdata, handles)
 % hObject    handle to recalc_bestbar (see GCBO)
@@ -681,3 +640,8 @@ setActiveTrack(activeTrack);
 process_amplitude(trackData);
 
 plotAmplitude(handles);
+
+
+
+
+

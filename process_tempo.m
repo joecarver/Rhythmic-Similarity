@@ -15,7 +15,7 @@ tempo_cand = mirtempo(wf, 'Total', 3);
 tempo_cand = mirgetdata(tempo_cand);
 
 if (numel(tempo_cand) > 1)
-    [c, index] = min(abs(tempo_cand - tempo_est));
+    [~, index] = min(abs(tempo_cand - tempo_est));
     tempo = tempo_cand(index);
 else
     tempo = tempo_cand;
