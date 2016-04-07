@@ -1,4 +1,4 @@
-function similar_tracks = process_similarTracks(activeTrack, selectedFeatures)
+function similar_tracks = process_similarTracks(activeTrack, selectedChannels)
 %GET_SIMILAR_TRACKS Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,16 +6,15 @@ trackArray = getTrackArray;
 tCount = numel(trackArray);
 trackData = activeTrack.TrackData;
 
-
 track_distances = cell(tCount, 2);
-
+track_distances(1, 1) = {activeTrack.SelectedFeature};
+track_distances(1, 2) = {selectedChannels};
 
 display(['Calculating distances for ' trackData.TrackName]);
 
 switch activeTrack.SelectedFeature
     case 'Autocorrelation'
         feature = trackData.AutoCorrelation;
-
         for i = 1:tCount
             trackData_comp = trackArray(i).TrackData;
             feature_comp = trackData_comp.AutoCorrelation;
@@ -34,33 +33,36 @@ switch activeTrack.SelectedFeature
 
             display(strcat('distance to ', track_name, ' = ', num2str(dist)));
 
-            track_distances(i, 1) = {track_name};
-            track_distances(i, 2) = {dist};
+            track_distances(i+1, 1) = {track_name};
+            track_distances(i+1, 2) = {dist};
         end
         display('Done');
     case 'Amplitude Envelope'
         amplitude = trackData.Amplitude;
-        
-        feature = createfeaturevector(amplitude, selectedFeatures);
-        
+
+        feature = createfeaturevector(amplitude, selectedChannels);
+
         for i = 1:tCount
             trackData_comp = trackArray(i).TrackData;
             amplitude_comp = trackData_comp.Amplitude;
             track_name = trackData_comp.TrackName;
-            
-            feature_comp = createfeaturevector(amplitude_comp, selectedFeatures);
-            
-            dist = norm(feature - feature_comp);
-            
+
+            feature_comp = createfeaturevector(amplitude_comp, selectedChannels);
+            dists = zeros(size(feature,1), 1);
+            for c=1:size(feature,1)
+                dists(c) = gdm(feature(c,:), feature_comp(c,:), @gdf);
+            end
+
+            dist = mean(dists);
             %display(['distance to ' track_name ' = ' num2str(dist)]);
-            
-            track_distances(i, 1) = {track_name};
-            track_distances(i, 2) = {dist};
+
+            track_distances(i+1, 1) = {track_name};
+            track_distances(i+1, 2) = {dist};
         end
 end
 
 similar_tracks = track_distances;
-end
+
 
 function resized = resize(comp_feature, size)
   %resample each comparison feature to length of query feature
@@ -71,9 +73,10 @@ function resized = resize(comp_feature, size)
     resized = interp1(x, comp_feature, xp);
 end
 
-function featurevec = createfeaturevector(amplitude, selectedFeatures)
 
-    featuredims = size(selectedFeatures,2);
+function featurevec = createfeaturevector(amplitude, selectedChannels)
+
+    featuredims = size(selectedChannels,2);
     featurelength = size(amplitude,2);
     minpkdist = featurelength/20;
         
@@ -82,14 +85,15 @@ function featurevec = createfeaturevector(amplitude, selectedFeatures)
     featurevec = zeros(featuredims, 16);
 
     %for every channel thats been selected
-    for i = 1:featuredims
-        ampdata = amplitude(selectedFeatures(i),:);
+    for d = 1:featuredims
+        ampdata = amplitude(selectedChannels(d),:);
         %identify the defining peaks in the amplitude envelope
-        [pks, locs] = findpeaks(ampdata, 'MinPeakHeight', max(ampdata)/2, 'MinPeakDistance', minpkdist);
+        [~, locs] = findpeaks(ampdata, 'MinPeakHeight', max(ampdata)/2, 'MinPeakDistance', minpkdist);
         %compute its relative position in the 16 bit feature vector
         for l = 1:numel(locs)
             [~, pos] = min(abs(sections - locs(l)));
-            featurevec(i, pos) = 1;
+            featurevec(d, pos) = 1;
         end
     end
+end
 end

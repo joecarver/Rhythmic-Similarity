@@ -11,6 +11,7 @@ classdef TrackData
        OriginalPath
        TrackName
        PathToInfoDir
+       ActGenre
        Tempo
        BestBar
        BestBarLoc
@@ -37,6 +38,10 @@ classdef TrackData
                 [~, name, ~] = fileparts(originalpath);
                 tr.TrackName = name;
                 mkdir(tr.PathToInfoDir);
+                
+                %read the genre from filepath - only for testing purposes
+                [~, ind] = regexp(originalpath, 'DATA/');
+                tr.ActGenre = originalpath(ind+1:ind+3);
             end
         end
         
@@ -94,18 +99,8 @@ classdef TrackData
         
         
         function sim = get.SimilarTracks(obj)
-            pathToSimTracks = [obj.PathToInfoDir obj.TrackName '_SIM.txt'];
-            if exist(pathToSimTracks, 'file')
-                sim = importdata(pathToSimTracks);
-            else
-                simtrack_map = process_similarTracks(obj);
-                sim = sortrows(simtrack_map, 2);
-                save(pathToSimTracks, 'sim');
-            end
-        end
-        
-        function obj = set.SimilarTracks(obj, newtracks)
-            obj.SimilarTracks = newtracks;
+            pathToSimTracks = [obj.PathToInfoDir obj.TrackName '_SIM.mat'];
+            sim = importdata(pathToSimTracks);
         end
         
         function env_indexes = getBestCluster(obj)

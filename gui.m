@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 05-Apr-2016 18:59:50
+% Last Modified by GUIDE v2.5 07-Apr-2016 11:25:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,8 +55,8 @@ warning('off', 'MATLAB:MKDIR:DirectoryExists');
 
 channel_count = 3;
 
-pathToInfo = [pwd '/Analysis Files/'];
-pathToFilelist = [pwd '/test.txt'];
+pathToInfo = ['/Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab' '/Analysis Files/'];
+pathToFilelist = ['/Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab' '/test.txt'];
 
 setPathToInfo(pathToInfo);
 setPathToFilelist(pathToFilelist);
@@ -75,7 +75,7 @@ greeting = miraudio('theredshore.mp3');
 t = mirautocor(greeting);
 %mirplay(greeting);
 
-loadFilelist(handles, pathToFilelist);
+loadFilelist(pathToFilelist);
 populate_table(handles);
 
 % Choose default command line output for gui
@@ -133,7 +133,7 @@ end
 populate_table(handles);
 
   
-function loadFilelist(handles, fl_loc)
+function loadFilelist(fl_loc)
 %loadFileList called on start up and whenever updateFilelist is called
 %(i.e. in select_files_cb)
 %   PARAMS - handles object for gui, path to the filelist
@@ -642,6 +642,49 @@ process_amplitude(trackData);
 plotAmplitude(handles);
 
 
+% --- Executes on button press in showpeaks_button.
+function showpeaks_button_Callback(hObject, eventdata, handles)
+% hObject    handle to showpeaks_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+activeTrack = getActiveTrack;
+trackData = activeTrack.TrackData;
+
+amplitude = trackData.Amplitude;
+minpkdist = size(amplitude,2)/20;
+
+for i = 1:size(amplitude, 1)
+    ampdata = amplitude(i,:);
+    findpeaks(ampdata, 'MinPeakHeight', max(ampdata)/2, 'MinPeakDistance', minpkdist);
+end
 
 
+% --- Executes on button press in allsims_button.
+function allsims_button_Callback(hObject, eventdata, handles)
+% hObject    handle to allsims_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+selectedFeature = questdlg('Select feature to compare', 'Dialog', 'Autocorrelation', 'Amplitude Envelope', 1);
+selectedChannels = 0;
+
+if strcmp(selectedFeature,'Amplitude Envelope')
+    selectedChannels = [1 2 3];
+end
+
+trackArray = getTrackArray;
+
+for i = 1:numel(trackArray)
+    trackData = trackArray(i).TrackData;
+    activeTrack = ActiveTrack(trackData);
+    activeTrack.SelectedFeature = selectedFeature;
+    similar_tracks = process_similarTracks(activeTrack, selectedChannels);
+    similar_tracks(1,2) = {0};
+    similar_tracks = sortrows(similar_tracks, 2);
+    similar_tracks(1,2) = {selectedChannels};
+    trackData.SimilarTracks = similar_tracks;
+    
+    pathToSimTracks = [trackData.PathToInfoDir trackData.TrackName '_SIM_' selectedFeature(1:5) '_.mat'];
+    save(pathToSimTracks, 'similar_tracks');
+end
