@@ -103,20 +103,6 @@ classdef TrackData
             sim = importdata(pathToSimTracks);
         end
         
-        function env_indexes = getBestCluster(obj)
-            allChannels = obj.Amplitude;
-            [cIDs, cVals] = kmeans(allChannels, 5, 'Replicates', 5);
-
-            [clustCounts, indexes] = sort(histcounts(cIDs), 'Descend');
-
-            env_indexes = [];
-
-            for i = 1:size(cIDs)
-                if cIDs(i) == indexes(1)
-                    env_indexes = [env_indexes i];
-                end
-            end
-        end
 
     end
 end

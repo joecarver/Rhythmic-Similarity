@@ -1,7 +1,5 @@
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/01 Creeper.mp3
-/Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/01 Dance Til The Police Come.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/01 Find Jah Way (Dubplate Version).mp3
-/Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/01 Kaychunk.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/01 Left Leg Out.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/01 Morgue.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/01 Sniper.mp3
@@ -10,7 +8,6 @@
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/02 Jah War (Ft. Flowdan) (Loefah Remix).mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/02 Rules of the Dance (Mungo's Hi-Fi ft. Charlie P).mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/02 Shift (Instrumental).mp3
-/Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/02 The Gherkin Tower (Instrumental).mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/03 P's & Q's.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/03 Shallow Grave.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/Dubstep/03 Skeng (feat. Killa P & Flowdan).mp3
@@ -46,7 +43,6 @@
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/House/02 Afro Gente Dub.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/House/02 Build It Up.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/House/02 Ozone.mp3
-/Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/House/02 Prix choc.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/House/02 Sweets.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/House/02 Wacky Jacky.mp3
 /Users/josephcarver/Google Drive/My Documents/Uni/Year 3/3YP/Matlab/DATA/House/02 World.mp3

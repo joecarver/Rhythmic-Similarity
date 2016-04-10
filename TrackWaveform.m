@@ -13,7 +13,7 @@ classdef TrackWaveform < handle
         function tr_wf = TrackWaveform(track_path)
             if(nargin > 0)
                 tr_wf.TrackPath = track_path;
-                tr_wf.Waveform = miraudio(track_path, 'TRIM');
+                tr_wf.Waveform = miraudio(track_path);
             end
         end
     end

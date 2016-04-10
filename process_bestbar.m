@@ -16,62 +16,56 @@ tempo = trackData.Tempo;
 %filteredbars = mirfilterbank(wf,3);    
 
 wf_seg = process_segment(wf, tempo);
-
-%clusters envelope data over all channels
-%for every bar in the biggest cluster, checks its distance to cluster data
-%   gets start and end times of the closest few bars
-%   extracts the audio at this point
+wf_seg_fb = mirfilterbank(wf_seg, 'NbChannels', 3);
 
 % % extract, differentiate, half-wave rectify the amplitude envelope
 % %    gives a precise description of variation of energy produced by 
 % %    each note event from different auditory channels
-envs = mirenvelope(wf_seg, 'Diff', 'Halfwave');
+envs = mirenvelope(wf_seg_fb, 'Diff', 'Halfwave');
+
 %get all the amplitude envelope data and transpose so bars are rows
     %   then replace all NaN values with 0 so kmeans works
 env_dat = mirgetdata(envs);
-env_dat = env_dat';
-env_dat(isnan(env_dat)) = 0;
+cCount = size(env_dat,3);
+sCount = size(env_dat,1);
 
 
-k = 5;
-%cID contains the cluster index for each bar
-    %cVals contains the value at each sample (~5000) for each k cluster
-[cIDs, cVals] = kmeans(env_dat, k, 'Replicates', 5);
+barfeatures = [];
 
-%get sorted counts of clusters
-[clustCounts, indexes] = sort(histcounts(cIDs), 'Descend');
-
-%holds the indexes of all bars in the biggest cluster
-suggBars_ind = zeros(clustCounts(1),2);
-j=1;
-
-for i = 1:numel(cIDs)
-    if(cIDs(i) == indexes(1))
-        suggBars_ind(j,1) = i;
-        suggBars_ind(j,2) = norm(cVals(1,:) - env_dat(i, :));
-        j=j+1;
+%collect every feature vector that starts with a beat
+for i = 2:size(env_dat, 2)
+    amp_allchannels = zeros(cCount, sCount);
+    amp_allchannels(1,:) = env_dat(:, i, 1);
+    amp_allchannels(2,:) = env_dat(:, i, 2);
+    amp_allchannels(3,:) = env_dat(:, i, 3);
+    
+    barft = createfeaturevector(amp_allchannels, 1); %create a feature vector from just the low frequency components
+    if(barft(1))
+        barfeatures = [barfeatures ; barft];
     end
 end
 
-suggBars_ind = sortrows(suggBars_ind, 2);
-bestbarind = suggBars_ind(1,1);
+%mean these and set beats at all  sq's above threshold
+template_rhythm = mean(barfeatures);
+template_rhythm( (template_rhythm >= 0.2) ) = 1;
+template_rhythm( (template_rhythm < 0.2) ) = 0;
+
+barmatches = zeros(size(barfeatures,1), 2);
+
+%calculate the distance of each bar to the template rhythm 
+for i = 1:size(barfeatures,1)
+    barmatches(i, 1) = i;
+    barmatches(i, 2) = pdist2(template_rhythm, barfeatures(i,:), 'Hamming');
+end
+  
+%get the position of the closest bar to the template and save it as bestbar
+barmatches(1,:) = [];
+barmatches = sortrows(barmatches, 2);
+bestbarind = barmatches(1,1);
 barpositions = get(wf_seg, 'FramePos');
 barpositions = barpositions{1};
 bestbarloc = barpositions{bestbarind};
 bestbar = miraudio(wf, 'Excerpt', bestbarloc(1), bestbarloc(2));
-
-%silhouette shows that each cluster is not very distinctive - i.e. a lot of
-    %   overlap between them. This is not an issue as you would expect all bars in
-    %   a song to be fairly similar. 
-%More important is the progression of clusters across the data - as this
-    %   is a continuous, ordered dataset. Looking for distinctly separated
-    %   blocks of homologous cluster IDs
-    %[sild, silp] = silhouette(bar_datas, cID);
-
-%Notes 29 Feb
-%   amplitude envelope does not capture start of the bar in most cases
-%   - this is due to inaccurate bar delimitation as a result of
-%   imperfect tempo and missing bar phase information
 
 save(pathToBestBar, 'bestbar');
 

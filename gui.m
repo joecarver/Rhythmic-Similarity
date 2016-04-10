@@ -227,7 +227,8 @@ existingfeatures = [trackData.TempoExists, trackData.BestBarExists, ...
 
 %if the feature list is incomplete
 if any(~existingfeatures)
-    %construct a new waveform object for the track and set is as active
+    %construct a new waveform object for the track and attach it to the
+    %   trackData object
     trackWF = TrackWaveform(trackData.OriginalPath);
     trackData.TrackWaveform = trackWF;
     
@@ -288,9 +289,9 @@ for i = 1:fCount
             trackData.BestBar = process_bestbar(trackData);
         end
 
-        if(~existingfeatures(3))
-            trackData.AutoCorrelation = process_autocor(trackData);
-        end
+%         if(~existingfeatures(3))
+%             trackData.AutoCorrelation = process_autocor(trackData);
+%         end
 
         %clear the waveform object once features are computed
         trackData.TrackWaveform = [];
@@ -496,6 +497,7 @@ if(strcmp(activeTrack.SelectedFeature, 'Amplitude Envelope'))
 end 
     
 similar_tracks = process_similarTracks(activeTrack, selected_channels);
+similar_tracks(1,:) = []; % remove label
 similar_tracks = sortrows(similar_tracks, 2);
 
 set(display_box, 'String', similar_tracks(:,1));
@@ -681,7 +683,6 @@ for i = 1:numel(trackArray)
     activeTrack.SelectedFeature = selectedFeature;
     similar_tracks = process_similarTracks(activeTrack, selectedChannels);
     similar_tracks(1,2) = {0};
-    similar_tracks = sortrows(similar_tracks, 2);
     similar_tracks(1,2) = {selectedChannels};
     trackData.SimilarTracks = similar_tracks;
     

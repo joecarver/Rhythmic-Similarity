@@ -28,10 +28,11 @@ switch activeTrack.SelectedFeature
                 feature_comp = resize(feature_comp, ft_len);
                 feature_comp = feature_comp';
             end
-            dist = norm(feature - feature_comp);
+            dist = corrcoef(feature, feature_comp);
+            dist = dist(2);
             %dnum = mirgetdata(dist);
 
-            display(strcat('distance to ', track_name, ' = ', num2str(dist)));
+            %display(strcat('distance to ', track_name, ' = ', num2str(dist)));
 
             track_distances(i+1, 1) = {track_name};
             track_distances(i+1, 2) = {dist};
@@ -73,27 +74,4 @@ function resized = resize(comp_feature, size)
     resized = interp1(x, comp_feature, xp);
 end
 
-
-function featurevec = createfeaturevector(amplitude, selectedChannels)
-
-    featuredims = size(selectedChannels,2);
-    featurelength = size(amplitude,2);
-    minpkdist = featurelength/20;
-        
-    %divide the feature into 16 equal measures 
-    sections = linspace(0, featurelength, 16);
-    featurevec = zeros(featuredims, 16);
-
-    %for every channel thats been selected
-    for d = 1:featuredims
-        ampdata = amplitude(selectedChannels(d),:);
-        %identify the defining peaks in the amplitude envelope
-        [~, locs] = findpeaks(ampdata, 'MinPeakHeight', max(ampdata)/2, 'MinPeakDistance', minpkdist);
-        %compute its relative position in the 16 bit feature vector
-        for l = 1:numel(locs)
-            [~, pos] = min(abs(sections - locs(l)));
-            featurevec(d, pos) = 1;
-        end
-    end
-end
 end

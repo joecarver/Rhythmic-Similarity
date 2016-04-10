@@ -17,21 +17,17 @@ trackL = mirgetdata(mirlength(wf));
 barcount = ceil((trackL / barL) + barL);
 
 %vector to hold start times of each segment 
-times = zeros(barcount, 1);
+times = [];
 
-%start time 
-%   TODO - improve to recognise first beat of track (mironsets)
+downbeat = process_downbeat(wf); 
 
-pos = get(wf, 'Pos');
-pos = pos{1};
-
-time = pos{1}(1);
-
+time = downbeat; %start time for segmentation algorithm
 while time < trackL
     times = [times; time];
     time = time + barL;
 end
 
+%wf = miraudio(wf, 'Excerpt', downbeat, trackL); %trim audio up until downbeat
 segs = mirsegment(wf, times);
 end
 
