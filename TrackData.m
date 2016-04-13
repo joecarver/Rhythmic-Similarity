@@ -13,16 +13,15 @@ classdef TrackData
        PathToInfoDir
        ActGenre
        Tempo
+       TempoCands
        BestBar
        BestBarLoc
        Amplitude
-       AutoCorrelation
        SimilarTracks
        TrackWaveform
     end
     
     properties (Dependent)
-       AutoCorExists
        AmplitudeExists
        BestBarExists
        TempoExists
@@ -37,6 +36,21 @@ classdef TrackData
                 tr.OriginalPath = originalpath;
                 [~, name, ~] = fileparts(originalpath);
                 tr.TrackName = name;
+                
+                if tr.TempoExists
+                    tr.Tempo = tr.getFromDisk('_TMP.mat');
+                else
+                    tr.Tempo = 0;
+                end
+                
+                if tr.BestBarExists
+                    tr.BestBar = tr.getFromDisk('_BAR.mat');
+                end
+                
+                if tr.AmplitudeExists
+                    tr.Amplitude = tr.getFromDisk('_AMPL.mat');
+                end
+                
                 mkdir(tr.PathToInfoDir);
                 
                 %read the genre from filepath - only for testing purposes
@@ -62,48 +76,41 @@ classdef TrackData
         function exists = get.AmplitudeExists(obj)
             exists = exist([obj.PathToInfoDir obj.TrackName '_AMPL.mat'], 'file');
         end 
-        
-        function exists = get.AutoCorExists(obj)
-            exists = exist([obj.PathToInfoDir obj.TrackName '_COR.mat'], 'file');
-        end
-        
-        function  tempo = get.Tempo(obj)
-            pathToTempo = [obj.PathToInfoDir obj.TrackName '_TMP.mat'];
-            if ~obj.TempoExists
-                tempo = 0;
-            else
-                tempo = importdata(pathToTempo);
-            end
-        end
-                
-        function  bestbar = get.BestBar(obj)
-            pathToBestBar = [obj.PathToInfoDir obj.TrackName '_BAR.mat'];
-            bestbar = importdata(pathToBestBar);
-        end
-        
+       
         function bbloc = get.BestBarLoc(obj)
             times = get(obj.BestBar, 'Time');
             times = times{1,1}{1,1};
             bbloc = [times(1) times(end)];
         end
+           
+        function obj = updateDiskData(obj)
+            pathToInfoFiles = [obj.PathToInfoDir obj.TrackName];
             
-        function  ampl = get.Amplitude(obj)
-            pathToAmplitude = [obj.PathToInfoDir obj.TrackName '_AMPL.mat'];
-            ampl = importdata(pathToAmplitude);
+            tempo = obj.Tempo;
+            tempocand = obj.TempoCands;
+            bestbar = obj.BestBar;
+            amplitude = obj.Amplitude;
+            
+            %update any details that have values entere
+            if tempo
+                save([pathToInfoFiles '_TMP.mat'], 'tempo');
+            end
+            if ~isempty(tempocand)
+                save([pathToInfoFiles '_TMPCAND.mat'], 'tempocand');
+            end
+            if ~isempty(bestbar)
+                save([pathToInfoFiles '_BAR.mat'], 'bestbar');
+            end
+            if ~isempty(amplitude)
+                save([pathToInfoFiles '_AMPL.mat'], 'amplitude');
+            end
         end
-        
-        function  autoc = get.AutoCorrelation(obj)
-            pathToAutoCor = [obj.PathToInfoDir obj.TrackName '_COR.mat'];
-            autoc = importdata(pathToAutoCor);
-        end
-        
-        
-        function sim = get.SimilarTracks(obj)
-            pathToSimTracks = [obj.PathToInfoDir obj.TrackName '_SIM.mat'];
-            sim = importdata(pathToSimTracks);
-        end
-        
 
+        function data = getFromDisk(obj, suffix)
+            pathToFile = [obj.PathToInfoDir obj.TrackName suffix];
+            
+            data = importdata(pathToFile);
+        end
     end
 end
 

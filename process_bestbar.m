@@ -4,16 +4,9 @@ function bestbar = process_bestbar(trackData)
 
 display('COMPUTING BEST BAR');
 
-pathToBestBar = [trackData.PathToInfoDir trackData.TrackName '_BAR.mat'];
-
 trackWF = trackData.TrackWaveform;
 wf = trackWF.Waveform;
-tempo = trackData.Tempo;
-
-%disp('Decomposing into channels')
-%decompose bars into audio channels
-   %n is number of channels to use - further arguments available
-%filteredbars = mirfilterbank(wf,3);    
+tempo = trackData.Tempo;   
 
 wf_seg = process_segment(wf, tempo);
 wf_seg_fb = mirfilterbank(wf_seg, 'NbChannels', 3);
@@ -30,7 +23,9 @@ cCount = size(env_dat,3);
 sCount = size(env_dat,1);
 
 
-barfeatures = [];
+lowpatterns = [];
+medpatterns = [];
+highpatterns = [];
 
 %collect every feature vector that starts with a beat
 for i = 2:size(env_dat, 2)
@@ -39,23 +34,29 @@ for i = 2:size(env_dat, 2)
     amp_allchannels(2,:) = env_dat(:, i, 2);
     amp_allchannels(3,:) = env_dat(:, i, 3);
     
-    barft = createfeaturevector(amp_allchannels, 1); %create a feature vector from just the low frequency components
-    if(barft(1))
-        barfeatures = [barfeatures ; barft];
+    lowft = createfeaturevector(amp_allchannels, 1); %create a feature vector from just the low frequency components
+    if(lowft(1))
+        lowpatterns = [lowpatterns ; lowft];
+        
+        midhighft = createfeaturevector(amp_allchannels, [2 3]);
+        medpatterns = [medpatterns ; midhighft(1,:)];
+        highpatterns = [highpatterns ; midhighft(2,:)];
     end
 end
 
 %mean these and set beats at all  sq's above threshold
-template_rhythm = mean(barfeatures);
-template_rhythm( (template_rhythm >= 0.2) ) = 1;
-template_rhythm( (template_rhythm < 0.2) ) = 0;
+repr_rhythm = summarise_patterns(lowpatterns, medpatterns, highpatterns);
 
-barmatches = zeros(size(barfeatures,1), 2);
+barmatches = zeros(size(lowpatterns,1), 2);
 
 %calculate the distance of each bar to the template rhythm 
-for i = 1:size(barfeatures,1)
+for i = 1:size(lowpatterns,1)
     barmatches(i, 1) = i;
-    barmatches(i, 2) = pdist2(template_rhythm, barfeatures(i,:), 'Hamming');
+    
+    lowdist = pdist2(repr_rhythm(1,:), lowpatterns(i,:), 'Hamming');
+    meddist = pdist2(repr_rhythm(2,:), medpatterns(i,:), 'Hamming');
+    highdist = pdist2(repr_rhythm(3,:), highpatterns(i,:), 'Hamming');
+    barmatches(i, 2) = lowdist + meddist + highdist;
 end
   
 %get the position of the closest bar to the template and save it as bestbar
@@ -67,9 +68,21 @@ barpositions = barpositions{1};
 bestbarloc = barpositions{bestbarind};
 bestbar = miraudio(wf, 'Excerpt', bestbarloc(1), bestbarloc(2));
 
-save(pathToBestBar, 'bestbar');
-
 display('BEST BAR DONE');
 end
     
+function repr_rhythm = summarise_patterns(lowpatterns, medpatterns, highpatterns)
+    low_rhythm = mean(lowpatterns);
+    low_rhythm( (low_rhythm >= 0.3) ) = 1;
+    low_rhythm( (low_rhythm < 0.3) ) = 0;
     
+    med_rhythm = mean(medpatterns);
+    med_rhythm( (med_rhythm >= 0.3) ) = 1;
+    med_rhythm( (med_rhythm < 0.3) ) = 0;
+    
+    high_rhythm = mean(highpatterns);
+    high_rhythm( (high_rhythm >= 0.3) ) = 1;
+    high_rhythm( (high_rhythm < 0.3) ) = 0;
+    
+    repr_rhythm = [low_rhythm ; med_rhythm ; high_rhythm];
+end

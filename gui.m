@@ -62,14 +62,12 @@ setPathToInfo(pathToInfo);
 setPathToFilelist(pathToFilelist);
 setActiveTrack();
 
-set(handles.feature_buttongroup, 'Visible', 'off');
 set(handles.similar_tracks_button, 'Visible', 'off');
 set(handles.frequency_buttongroup, 'Visible', 'off');
 set(handles.bbadjust_group, 'Visible', 'off');
 set(handles.action_buttongroup, 'Visible', 'off');
 
 initialiseFrequency_bg(handles, channel_count);
-
 
 greeting = miraudio('theredshore.mp3');
 t = mirautocor(greeting);
@@ -144,10 +142,13 @@ file = fopen(fl_loc, 'r');
 pathsToTracks = textscan(file, '%s', 'Delimiter', '\n');
 pathsToTracks = pathsToTracks{1};
 
-%construct a TrackArray object from the string array of paths
-%set it as the global/active trackArray
-trackArray = TrackArray(pathsToTracks);
-setTrackArray(trackArray);
+if(size(pathsToTracks, 1))
+    %construct a TrackArray object from the string array of paths
+    %set it as the global/active trackArray
+    trackArray = TrackArray(pathsToTracks);
+    setTrackArray(trackArray);
+end
+
 
 %update the table with the latest info found on disk
 %does not call any functions that perform calculations so is v quick
@@ -164,7 +165,6 @@ locations = [];
 calc_tempos = [];
 bestbars = [];
 amplitudes = [];
-autocors = [];
 
 %for every track path in filelist
 for i = 1:tCount
@@ -175,7 +175,6 @@ for i = 1:tCount
     calc_tempos = [calc_tempos; trackData.Tempo];
     bestbars = [bestbars; trackData.BestBarExists];
     amplitudes = [amplitudes; trackData.AmplitudeExists];
-    autocors = [autocors; trackData.AutoCorExists];
 end
 
 %pad string info fields to make all entries equal length
@@ -183,7 +182,7 @@ titles = char(titles);
 locations = char(locations);
 
 %tabledata in correct format for insertion
-tData = [ cellstr(titles) cellstr(locations) num2cell(calc_tempos(:)) num2cell(bestbars(:)) num2cell(amplitudes(:)) num2cell(autocors(:)) ];
+tData = [ cellstr(titles) cellstr(locations) num2cell(calc_tempos(:)) num2cell(bestbars(:)) num2cell(amplitudes(:)) ];
 
 set(hTable, 'Data', tData); 
 
@@ -200,6 +199,33 @@ if (numel(eventdata.Indices) > 0)
     handles.sel_col = eventdata.Indices(2);
 end
 
+if(handles.sel_col == 3)
+    trackArray = getTrackArray;
+    trackData = trackArray(handles.sel_row).TrackData;
+    tempoCands = trackData.getFromDisk('_TMPCAND.mat');
+    
+    switch numel(tempoCands)
+        case 1
+            newtempo = tempoCands;
+        case 2
+            newtempo = str2double(questdlg(trackData.TrackName, 'Select Tempo', ...
+                                            num2str(tempoCands(1)), num2str(tempoCands(2)), ...
+                                            num2str(tempoCands(1))));
+        case 3
+            newtempo = str2double(questdlg(trackData.TrackName, 'Select Tempo', ...
+                                            num2str(tempoCands(1)), num2str(tempoCands(2)), ...
+                                            num2str(tempoCands(3)), num2str(tempoCands(1))));
+    end
+            
+    if newtempo < 100
+        newtempo = newtempo*2;
+    end
+    
+    trackData.Tempo = newtempo;
+    trackData.updateDiskData;
+    updateTrackArray(trackData);
+    populate_table(handles);
+end
 if(handles.sel_col == 4)
     trackArray = getTrackArray;
     trackData = trackArray(handles.sel_row).TrackData;
@@ -222,8 +248,7 @@ function calc_selected_track_button_Callback(hObject, eventdata, handles)
 
 trackData = get_selected_track(handles);
 
-existingfeatures = [trackData.TempoExists, trackData.BestBarExists, ...
-                    trackData.AutoCorExists];
+existingfeatures = [trackData.TempoExists, trackData.BestBarExists];
 
 %if the feature list is incomplete
 if any(~existingfeatures)
@@ -239,9 +264,6 @@ if any(~existingfeatures)
     if(~existingfeatures(2))
         trackData.BestBar = process_bestbar(trackData);
     end
-    if(~existingfeatures(3))
-        trackData.AutoCorrelation = process_autocor(trackData);
-    end
 
     %clear the waveform object once features are computed
     trackData.TrackWaveform = [];
@@ -250,7 +272,9 @@ end
 if ~trackData.AmplitudeExists
     trackData.Amplitude = process_amplitude(trackData);
 end
-    
+
+trackData.updateDiskData;
+updateTrackArray(trackData);
 populate_table(handles);
 
 % --- Executes on button press in calc_features_button.
@@ -272,8 +296,7 @@ for i = 1:fCount
     
     %waitbar(wb_ratio, wb, wb_msg);
 
-    existingfeatures = [trackData.Tempo, trackData.BestBarExists, ...
-                        trackData.AutoCorExists];
+    existingfeatures = [trackData.Tempo, trackData.BestBarExists];
 
     %if the feature list is incomplete
     if any(~existingfeatures)
@@ -288,11 +311,7 @@ for i = 1:fCount
         if(~existingfeatures(2))
             trackData.BestBar = process_bestbar(trackData);
         end
-
-%         if(~existingfeatures(3))
-%             trackData.AutoCorrelation = process_autocor(trackData);
-%         end
-
+        
         %clear the waveform object once features are computed
         trackData.TrackWaveform = [];
     end
@@ -300,6 +319,8 @@ for i = 1:fCount
     if ~trackData.AmplitudeExists
         trackData.Amplitude = process_amplitude(trackData);
     end
+    
+    trackData.updateDiskData;
    
     populate_table(handles);
 end
@@ -313,18 +334,19 @@ function load_selected_track_Callback(hObject, eventdata, handles)
 trackData = get_selected_track(handles);
 
 %if the feature list is incomplete
-if any([~trackData.AmplitudeExists,
-        ~trackData.AutoCorExists,
+if any([~trackData.AmplitudeExists, ...
+        ~trackData.BestBarExists, ...
         ~trackData.Tempo])
     error('Analysis not complete');
 else
+    
     setActiveTrack(trackData);
     activeTrack = getActiveTrack;
     set(handles.display_panel, 'Title', activeTrack.TrackData.TrackName);
-    set(handles.feature_buttongroup, 'Visible', 'on');
-    activeTrack.SelectedFeature = handles.feature_buttongroup.SelectedObject.String;
+    set(handles.bbadjust_group, 'Visible', 'on');
+    set(handles.action_buttongroup, 'Visible', 'on');
     set(handles.similar_tracks_button, 'Visible', 'on');                                 
-    plotFeatureData(handles);
+    plotAmplitude(handles);
 end
 
 function initialiseFrequency_bg(handles, channel_count)
@@ -355,37 +377,13 @@ if(numel(bg.Children) < 2)
     guidata(flipud(bg), handles);
 end
 
-function plotFeatureData(handles)
-
-selfeature = get(handles.feature_buttongroup, 'SelectedObject');
-
-switch(selfeature.String)
-    case 'Autocorrelation'
-        plotAutoCor(handles);
-    case 'Amplitude Envelope'
-        plotAmplitude(handles);
-end
-
-function plotAutoCor(handles)
-axes(handles.feature_panel);
-cla;
-
-activeTrack = getActiveTrack;
-auto_cor = activeTrack.TrackData.AutoCorrelation;
-
-set(handles.feature_panel, 'XLabel', xlabel('Time Lag'));
-set(handles.feature_panel, 'YLabel', ylabel('Correlation'));
-
-plot(auto_cor);
         
 function plotAmplitude(handles)
 axes(handles.feature_panel);
 
 freq_bg = handles.frequency_buttongroup;
-
 freq_bg.Visible = 'on';
-set(handles.bbadjust_group, 'Visible', 'on');
-set(handles.action_buttongroup, 'Visible', 'on');
+
 cla;
 
 activeTrack = getActiveTrack;
@@ -412,31 +410,6 @@ for i=1:size(all_freqs,1)
         plot(xvals+activeTrack.BestBarOffset, all_channels(i,:));
     end
 end
-
-% --- Executes when selected object is changed in feature_buttongroup.
-function feature_buttongroup_SelectionChangedFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in feature_buttongroup 
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-freq_bg = handles.frequency_buttongroup;
-activeTrack = getActiveTrack;
-
-switch(get(eventdata.NewValue, 'Tag'))
-    case 'autocor_button'
-        freq_bg.Visible = 'off';
-        set(handles.bbadjust_group, 'Visible', 'off');
-        set(handles.action_buttongroup, 'Visible', 'off');
-        activeTrack.SelectedFeature = 'Autocorrelation';
-        plotAutoCor(handles);
-    case 'amplitude_button'
-        activeTrack.SelectedFeature = 'Amplitude Envelope';
-        plotAmplitude(handles);
-end
-
-if ~isempty(getActiveTrack)
-    plotFeatureData(handles);
-end
     
 % --- Executes on button press in replot_ampl_button.
 function replot_ampl_button_Callback(hObject, eventdata, handles)
@@ -460,19 +433,16 @@ axes(handles.feature_panel);
 cla;
 
 activeTrack = getActiveTrack;
+amplitude = activeTrack.TrackData.Amplitude;
+
 seltrack_index = get(hObject, 'Value');
 selTrackData = getTrackDataFromName(activeTrack.SimilarTracks(seltrack_index));
+ampl_comp = selTrackData.Amplitude;
 
-switch(activeTrack.SelectedFeature)
-    case 'Amplitude Envelope'
-        hold on;
-        plot(mean(activeTrack.TrackData.Amplitude));
-        plot(mean(selTrackData.Amplitude));
-    case 'Autocorrelation'
-        hold on;
-        plot(activeTrack.TrackData.AutoCorrelation);
-        plot(selTrackData.AutoCorrelation);
-end
+hold on;
+plot(mean(amplitude));
+plot(resize(mean(ampl_comp), size(amplitude,2)));
+
 
 % --- Executes on button press in similar_tracks_button.
 function similar_tracks_button_Callback(hObject, eventdata, handles)
@@ -485,16 +455,14 @@ display_box = handles.sim_tracks_box;
 
 selected_channels = [];
 
-%if we are using the amplitude envelope, detect which channel buttons are
-%   ticked
-if(strcmp(activeTrack.SelectedFeature, 'Amplitude Envelope'))
-    all_freqs = flipud(handles.frequency_buttongroup.Children);
-    for i=1:size(all_freqs,1) 
-        if(all_freqs(i).Value == all_freqs(i).Max)
-            selected_channels = [selected_channels i];
-        end
+%detect which channel buttons are ticked
+
+all_freqs = flipud(handles.frequency_buttongroup.Children);
+for i=1:size(all_freqs,1) 
+    if(all_freqs(i).Value == all_freqs(i).Max)
+        selected_channels = [selected_channels i];
     end
-end 
+end
     
 similar_tracks = process_similarTracks(activeTrack, selected_channels);
 similar_tracks(1,:) = []; % remove label
@@ -523,9 +491,6 @@ function edittrack_button_Callback(hObject, eventdata, handles)
 
 activeTrack = getActiveTrack;
 actTrackData = activeTrack.TrackData;
-pathToBestBar = [actTrackData.PathToInfoDir actTrackData.TrackName '_BAR.mat'];
-pathToTempo = [actTrackData.PathToInfoDir actTrackData.TrackName '_TMP.mat'];
-
 
 prompt = {'Tempo', 'Best Bar Start Pos', 'Beats in bar'};
 dlg_title = actTrackData.TrackName;
@@ -546,14 +511,12 @@ barL = spb * bib;
 newbarend = newbarstart + barL;
 
 newbestbar = miraudio(actTrackData.OriginalPath, 'Excerpt', newbarstart, newbarend);
+
 actTrackData.BestBar = newbestbar;
-save(pathToBestBar, 'newbestbar');
-
 actTrackData.Tempo = newtempo;
-save(pathToTempo, 'newtempo');
+actTrackData.Amplitude = process_amplitude(actTrackData);
 
-process_amplitude(actTrackData);
-
+actTrackData.updateDiskData;
 setActiveTrack(actTrackData);
 
 plotAmplitude(handles);
@@ -632,14 +595,13 @@ offset_secs = offset_pts * secs_per_pt;
 newbarstart = trackData.BestBarLoc(1) - offset_secs;
 
 newbestbar = miraudio(trackData.OriginalPath, 'Excerpt', newbarstart, newbarstart+barlen_secs);
-pathToBestBar = [trackData.PathToInfoDir trackData.TrackName '_BAR.mat'];
 
 trackData.BestBar = newbestbar;
-save(pathToBestBar, 'newbestbar');
-activeTrack.BestBarOffset = 0;
-setActiveTrack(activeTrack);
+trackData.Amplitude = process_amplitude(trackData);
+trackData.updateDiskData;
 
-process_amplitude(trackData);
+activeTrack.BestBarOffset = 0;
+setActiveTrack(trackData);
 
 plotAmplitude(handles);
 
@@ -668,12 +630,7 @@ function allsims_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-selectedFeature = questdlg('Select feature to compare', 'Dialog', 'Autocorrelation', 'Amplitude Envelope', 1);
-selectedChannels = 0;
-
-if strcmp(selectedFeature,'Amplitude Envelope')
-    selectedChannels = [1 2 3];
-end
+selectedChannels = [1 2 3];
 
 trackArray = getTrackArray;
 
@@ -686,6 +643,6 @@ for i = 1:numel(trackArray)
     similar_tracks(1,2) = {selectedChannels};
     trackData.SimilarTracks = similar_tracks;
     
-    pathToSimTracks = [trackData.PathToInfoDir trackData.TrackName '_SIM_' selectedFeature(1:5) '_.mat'];
+    pathToSimTracks = [trackData.PathToInfoDir trackData.TrackName '_SIM.mat'];
     save(pathToSimTracks, 'similar_tracks');
 end

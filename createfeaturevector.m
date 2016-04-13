@@ -11,8 +11,10 @@ function featurevec = createfeaturevector(amplitude, selectedChannels)
     %for every channel thats been selected
     for d = 1:featuredims
         ampdata = amplitude(selectedChannels(d),:);
+        maxval = 10/selectedChannels(d);
+        ampdata = normalized(ampdata, 0, maxval); 
         %identify the defining peaks in the amplitude envelope
-        [~, locs] = findpeaks(ampdata, 'MinPeakHeight', max(ampdata)*0.75, 'MinPeakDistance', minpkdist);
+        [~, locs] = findpeaks(ampdata, 'NPeaks', 8, 'SortStr', 'Descend', 'MinPeakDistance', minpkdist, 'MinPeakProminence', 1);
         %compute its relative position in the 16 bit feature vector
         for l = 1:numel(locs)
             [~, pos] = min(abs(sections - locs(l)));

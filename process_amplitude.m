@@ -4,8 +4,6 @@ function amplitude_allchannels = process_amplitude(trackData)
 
 display('COMPUTING AMPLITUDE');
 
-pathToAmpl = [trackData.PathToInfoDir trackData.TrackName '_AMPL.mat'];
-
 wf = trackData.BestBar;
 fb = mirfilterbank(wf, 'NbChannels', 3);
 
@@ -35,7 +33,6 @@ end
     %   - this is due to inaccurate bar delimitation as a result of
     %   imperfect tempo and missing bar phase information
 
-save(pathToAmpl, 'amplitude_allchannels');
 display('AMPLITUDE DONE');
 
 end
